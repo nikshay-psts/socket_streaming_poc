@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web sockets</title>
+  </head>
+  <body>
+    <video id="video_stream" src="" controls preload="auto"></video>
+  </body>
+  <script>
+    let video_content_type = 'video/webm; codecs="vp8, vorbis"';
+    let video = document.getElementById("video_stream");
+    let video_data_queue = [];
+    let ms = new MediaSource();
+    video.src = URL.createObjectURL(ms);
+    ms.addEventListener("sourceopen", startStreaming);
+    video.play()
+
+    function startStreaming() {
+      let video_sourceBuffer = ms.addSourceBuffer(video_content_type);
+      if (video_sourceBuffer.mode == "segments") {
+        video_sourceBuffer.mode = "sequence";
+      }
+      const socket = new WebSocket("ws://192.168.1.37:6200/ws");
+      socket.binaryType = "arraybuffer";
+
+      socket.onmessage = (msg) => {
+        try {
+          // let uint8array = new Uint8Array(msg.data);
+          // let media_type = uint8array[0];
+          // uint8array = uint8array.subarray(1);
+
+          // console.log(media_type);
+          // video_data_queue.push(uint8array);
+          video_sourceBuffer.appendBuffer(msg.data);
+        } catch (error) {
+          console.log(error);
+        }
+
+        // first_video_append = false;
+      };
+    }
+  </script>
+</html>
