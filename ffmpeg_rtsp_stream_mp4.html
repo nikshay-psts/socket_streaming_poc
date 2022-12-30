@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web sockets</title>
+  </head>
+  <body>
+    <video id="video_stream" src="" controls preload="auto" muted autoplay height="430" width="720"></video>
+  </body>
+  <script>
+    // let video_content_type = 'video/webm; codecs="vp8, vorbis"';
+    let video_content_type = 'video/mp4; codecs="avc1.64001E"';
+    let video = document.getElementById("video_stream");
+    let video_data_queue = [];
+    let ms = new MediaSource();
+    video.src = URL.createObjectURL(ms);
+    ms.addEventListener("sourceopen", startStreaming);
+    video.play()
+
+    function startStreaming() {
+      let video_sourceBuffer = ms.addSourceBuffer(video_content_type);
+      if (video_sourceBuffer.mode == "segments") {
+        video_sourceBuffer.mode = "sequence";
+      }
+      const socket = new WebSocket("ws://192.168.0.175:6200/ws");
+      socket.binaryType = "arraybuffer";
+      video_sourceBuffer.addEventListener('updateend', function() {
+        let buffered = video_sourceBuffer.buffered;
+        if (buffered.length > 0) {
+            let idx = buffered.length - 1;
+            let diff = buffered.end(idx) - video.currentTime;
+                if (diff > 15 && !this.updating) {
+                    video.currentTime = buffered.end(idx) - 1;
+                    video_sourceBuffer.remove(buffered.start(idx), buffered.end(idx) - 5);
+                }
+    if (diff > 10) {
+                    console.log("video diff = " + diff);
+                    video.currentTime = buffered.end(idx) - 1;
+                }
+            
+        }})
+      socket.onmessage = (msg) => {
+        try {
+          // let uint8array = new Uint8Array(msg.data);
+          // let media_type = uint8array[0];
+          // uint8array = uint8array.subarray(1);
+
+          // console.log(media_type);
+          video_data_queue.push(new Uint8Array(msg.data));
+          if (video_data_queue.length > 0 && !video_sourceBuffer.updating) {
+            video_sourceBuffer.appendBuffer(video_data_queue.shift());            
+          }
+        } catch (error) {
+          console.log(error);
+        }
+
+        // first_video_append = false;
+
+        /*
+        
+        ffmpeg -rtsp_transport tcp -hwaccel d3d11va -i rtsp://admin:b0l!n@p$t$@192.168.0.132/live/av0 -filter:v fps=60 -s 720*430 -b:v 8192K -maxrate 9000K -minrate 8192k -bufsize 6M -f webm -c:v libvpx -an http://192.168.0.229:6200/stream_from_ffmpeg
+
+        #ffmpeg -rtsp_transport tcp -i rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4 
+        # -f webm -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis http://192.168.1.37:6200/stream_from_ffmpeg
+        
+        */
+      };
+    }
+  </script>
+</html>
