@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web sockets</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      .videoContainer {
+        margin: 5px;
+        display: grid;
+        grid-template-columns: 33% 33% 33%;
+        grid-template-rows: 30% 30% 30%;
+        gap: 5px;
+      }
+      video {
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="videoContainer">
+      <video id="video_stream" src="" controls muted></video>
+
+      <video
+        id="video_stream_1"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+
+      <video
+        id="video_stream_2"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+
+      <video
+        id="video_stream_3"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+
+      <video
+        id="video_stream_4"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+      <video
+        id="video_stream_5"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+
+      <video
+        id="video_stream_6"
+        src=""
+        controls
+        preload="auto"
+        muted
+        autoplay
+      ></video>
+    </div>
+  </body>
+  <script>
+    const worker = new Worker("worker.js");
+    // let video_content_type = 'video/webm; codecs="vp8, vorbis"';
+    // let video_content_type = 'video/mp4; codecs="avc1.64001E, mp4a.40.2"';
+    // let video = document.getElementById("video_stream");
+    // let video_data_queue = [];
+    // let ms = new MediaSource();
+    // video.src = URL.createObjectURL(ms);
+    // ms.addEventListener("sourceopen", startStreaming);
+    // video.play();
+
+    // function startStreaming() {
+    //   let video_sourceBuffer = ms.addSourceBuffer(video_content_type);
+    //   if (video_sourceBuffer.mode == "segments") {
+    //     video_sourceBuffer.mode = "sequence";
+    //   }
+    //   const socket = new WebSocket("ws://192.168.0.175:6200/ws");
+    //   socket.binaryType = "arraybuffer";
+    //   video_sourceBuffer.addEventListener("updateend", function () {
+    //     let buffered = video_sourceBuffer.buffered;
+    //     if (buffered.length > 0) {
+    //       let idx = buffered.length - 1;
+    //       let diff = buffered.end(idx) - video.currentTime;
+    //       if (diff > 15 && !this.updating) {
+    //         video.currentTime = buffered.end(idx) - 1;
+    //         video_sourceBuffer.remove(
+    //           buffered.start(idx),
+    //           buffered.end(idx) - 5
+    //         );
+    //       }
+    //       if (diff > 10) {
+    //         console.log("video diff = " + diff);
+    //         video.currentTime = buffered.end(idx) - 1;
+    //       }
+    //     }
+    //   });
+    //   socket.onmessage = (msg) => {
+    //     try {
+    //       // let uint8array = new Uint8Array(msg.data);
+    //       // let media_type = uint8array[0];
+    //       // uint8array = uint8array.subarray(1);
+
+    //       // console.log(media_type);
+    //       video_data_queue.push(new Uint8Array(msg.data));
+    //       if (video_data_queue.length > 0 && !video_sourceBuffer.updating) {
+    //         video_sourceBuffer.appendBuffer(video_data_queue.shift());
+    //       }
+    //     } catch (error) {
+    //       console.log(error);
+    //     }
+
+    //     // first_video_append = false;
+
+    //     /*
+
+    //     ffmpeg -rtsp_transport tcp -hwaccel d3d11va -i rtsp://admin:b0l!n@p$t$@192.168.0.132/live/av0 -filter:v fps=60 -s 720*430 -b:v 8192K -maxrate 9000K -minrate 8192k -bufsize 6M -f webm -c:v libvpx -an http://192.168.0.229:6200/stream_from_ffmpeg
+
+    //     #ffmpeg -rtsp_transport tcp -i rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4
+    //     # -f webm -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis http://192.168.1.37:6200/stream_from_ffmpeg
+
+    //     */
+    //   };
+    // }
+    let startTime = new Date().getTime() / 1000;
+
+    window.onload = () => {
+      new Stream("video_stream", 5);
+      // new Stream("video_stream_1", 6);
+      // new Stream("video_stream_2", 7);
+      // new Stream("video_stream_3", 8);
+      // new Stream("video_stream_4", 9);
+      // new Stream("video_stream_5", 10);
+      // new Stream("video_stream_6", 11);
+    };
+
+    class Stream {
+      constructor(videoDOMId, userId) {
+        self = this;
+        this.userId - userId;
+        // this.socket = new WebSocket("ws://192.168.0.175:6200/ws");
+        // this.socket.onopen = () => {
+        //   this.socket.send(String(userId));
+        // };
+        this.video_content_type = 'video/mp4; codecs="avc1.64001E"';
+        this.video = document.getElementById(videoDOMId);
+        window.vid = this.video;
+        this.video_data_queue = [];
+        window.vq = this.video_data_queue;
+        this.ms = new MediaSource();
+        this.video.src = URL.createObjectURL(this.ms);
+
+        this.ms.addEventListener("sourceopen", () => {
+          this.startStreaming();
+        });
+
+        this.video.addEventListener("durationchange", () => {
+          // this.video.currentTime = 1;
+          this.video.play();
+        });
+      }
+
+      // getStreamRequirements() {
+      //   return {
+      //     socket : this.socket,
+      //     video :this.video,
+      //     video_data_queue: this.video_data_queue,
+      //   }
+      // }
+
+      startStreaming() {
+        let count = 0;
+        console.log(this.ms, this.socket, this.video_content_type);
+        this.video_sourceBuffer = this.ms.addSourceBuffer(
+          this.video_content_type
+        );
+        if (this.video_sourceBuffer.mode == "segments") {
+          this.video_sourceBuffer.mode = "sequence";
+        }
+        // this.socket.binaryType = "arraybuffer";
+        this.video_sourceBuffer.addEventListener("updateend", function () {
+          // this.buffered = this.video_sourceBuffer.buffered;
+          console.log("UPDATE ENDED");
+          // if (this.buffered.length > 0) {
+          //   this.idx = this.buffered.length - 1;
+          //   this.diff = this.buffered.end(this.idx) - self.video.currentTime;
+          //   // if (this.diff > 15 && !this.updating) {
+          //   //   self.video.currentTime = this.buffered.end(this.idx) - 1;
+          //   //   this.video_sourceBuffer.remove(
+          //   //     this.buffered.start(this.idx),
+          //   //     this.buffered.end(this.idx) - 5
+          //   //   );
+          //   // }
+          //   if (this.diff > 10) {
+          //     console.log("video this.diff = " + this.diff);
+          //     this.video.currentTime = this.buffered.end(idx) - 1;
+          //   }
+          // }
+
+          if (
+            self.video_data_queue.length > 0 &&
+            !self.video_sourceBuffer.updating
+          ) {
+            console.log("Source buffer updating");
+            self.video_sourceBuffer.appendBuffer(self.video_data_queue.shift());
+          }
+        });
+
+        worker.postMessage(5);
+        worker.onmessage = (msg) => {
+          try {
+            window.arrBuff = msg.data;
+            // console.log(msg);
+            if (typeof msg.data !== "object") {
+              return;
+            }
+            this.video_data_queue.push(msg.data);
+            // if (this.video_data_queue.length === 2) {
+            //   this.video_sourceBuffer.appendBuffer(
+            //     this.video_data_queue.shift()
+            //   );
+            // }
+            if (
+              this.video_data_queue.length > 0 &&
+              !this.video_sourceBuffer.updating
+            ) {
+              console.log("Source buffer updating");
+              this.video_sourceBuffer.appendBuffer(
+                this.video_data_queue.shift()
+              );
+            }
+          } catch (error) {
+            console.log(error);
+          }
+        };
+        // this.socket.onmessage = (msg) => {
+        //   try {
+        //     // let uint8array = new Uint8Array(msg.data);
+        //     // let media_type = uint8array[0];
+        //     // uint8array = uint8array.subarray(1);
+
+        //     // console.log(media_type);
+        //     window.vq = this.video_data_queue;
+        //     this.video_data_queue.push(msg.data);
+        //     if (
+        //       this.video_data_queue.length > 0 &&
+        //       !this.video_sourceBuffer.updating
+        //     ) {
+        //       console.log("Source buffer updating");
+        //       this.video_sourceBuffer.appendBuffer(
+        //         this.video_data_queue.shift()
+        //       );
+        //     }
+        //   } catch (error) {
+        //     console.log(error);
+        //   }
+
+        //   // first_video_append = false;
+
+        //   /*
+
+        // ffmpeg -rtsp_transport tcp -hwaccel d3d11va -i rtsp://admin:b0l!n@p$t$@192.168.0.132/live/av0 -filter:v fps=60 -s 720*430 -b:v 8192K -maxrate 9000K -minrate 8192k -bufsize 6M -f webm -c:v libvpx -an http://192.168.0.229:6200/stream_from_ffmpeg
+
+        // #ffmpeg -rtsp_transport tcp -i rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4
+        // # -f webm -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis http://192.168.1.37:6200/stream_from_ffmpeg
+
+        // */
+        // };
+      }
+
+      playback() {
+        setTimeout(function () {
+          console.log(this);
+          this.video.play();
+        }, 5000);
+      }
+    }
+    /*
+    119
+    116
+    108
+    112
+    109
+    104
+
+    ffmpeg -rtsp_transport tcp -i rtsp://nikshay:nikshay@192.168.0.108:554/stream1 -vcodec copy -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -reset_timestamps 1 -vsync 1 -flags global_header -bsf:v dump_extra -y http://192.168.0.175:6200/stream_from_ffmpeg/8
+    
+    */
+    let pre_timestamp = 0;
+    function checkbuffered() {
+      console.log("1 sec");
+      let video = document.getElementById("video_stream");
+      let buffered1 = video.buffered;
+      let v_id = buffered1.length - 1;
+      let waiting_flag = video.currentTime == pre_timestamp ? true : false;
+
+      /*if(waiting_flag) {
+        console.log("?? waiting ?? " + video.currentTime + " " + pre_timestamp);
+    }*/
+
+      // check buffered, ajust the current playback cache
+      if (pre_timestamp === 0) {
+        pre_timestamp = video.currentTime;
+        pre_buffered_len = buffered1.length;
+      } else {
+        if (pre_buffered_len != buffered1.length) {
+          if (buffered1.length > pre_buffered_len) {
+            var starttime = buffered1.start(v_id);
+            video.currentTime = starttime;
+          }
+
+          pre_buffered_len = buffered1.length;
+        }
+        pre_timestamp = video.currentTime;
+      }
+
+      if (buffered1.length <= 0) {
+        video.playbackRate = 1;
+        return;
+      }
+    }
+
+    let bufferMobitor = setInterval(() => {
+      checkbuffered();
+    }, 1000);
+  </script>
+</html>
